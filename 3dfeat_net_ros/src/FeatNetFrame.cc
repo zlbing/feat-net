@@ -135,9 +135,10 @@ namespace FeatNet{
 
       ransac(pre_frame_ptr_->features, selected_features,1);
       pre_frame_ptr_ =cur_frame_ptr_;
+      if(i==2){
+        exit(0);
+      }
     }
-
-
   }
 
   void FeatNetFrame::match(const std::vector< Eigen::Matrix<float, FEATURE_DIM, 1> >& desc_left_vec,
@@ -191,10 +192,11 @@ namespace FeatNet{
     Eigen::Vector3f l_centroid = Eigen::Vector3f::Zero();
     Eigen::Vector3f r_centroid = Eigen::Vector3f::Zero();
     for(size_t i=0; i< points_l.size(); i++){
-      l_centroid(i) = points_l[i].mean();
-      r_centroid(i) = points_r[i].mean();
+      l_centroid += points_l[i];
+      r_centroid += points_r[i];
     }
-
+    l_centroid = l_centroid/points_l.size();
+    r_centroid = r_centroid/points_l.size();
 //    std::cout<<"l_centroid="<<l_centroid.transpose()<<std::endl;
 //    std::cout<<"r_centroid="<<r_centroid.transpose()<<std::endl;
 
@@ -203,8 +205,8 @@ namespace FeatNet{
 
     std::vector<Eigen::Matrix3d> r22;
     for(size_t i=0; i< points_l.size(); i++){
-      l_centrized.push_back(points_l[i].cast<double>() - Eigen::Vector3f(l_centroid(i),l_centroid(i),l_centroid(i)).cast<double>());
-      r_centrized.push_back(points_r[i].cast<double>() - Eigen::Vector3f(r_centroid(i),r_centroid(i),r_centroid(i)).cast<double>());
+      l_centrized.push_back(points_l[i].cast<double>() - l_centroid.cast<double>());
+      r_centrized.push_back(points_r[i].cast<double>() - r_centroid.cast<double>());
       r12.push_back(r_centrized.back() - l_centrized.back());
       r21.push_back(l_centrized.back() - r_centrized.back());
     }
@@ -224,12 +226,12 @@ namespace FeatNet{
 
     for(size_t i=0; i < points_l.size(); i++){
       Eigen::Matrix3d rr = Eigen::Matrix3d::Zero();
-      rr(0,1) = -r22_1[2](i);
-      rr(0,2) = r22_1[1](i);
-      rr(1,0) = r22_1[2](i);
-      rr(1,2) = -r22_1[0](i);
-      rr(2,0) = -r22_1[1](i);
-      rr(2,1) = r22_1[0](i);
+      rr(0,1) = -r22_1[i](2);
+      rr(0,2) = r22_1[i](1);
+      rr(1,0) = r22_1[i](2);
+      rr(1,2) = -r22_1[i](0);
+      rr(2,0) = -r22_1[i](1);
+      rr(2,1) = r22_1[i](0);
       r22.push_back(rr);
 //      std::cout<<"r22["<<i<<"]=\n"<<rr<<std::endl;
     }
@@ -238,14 +240,12 @@ namespace FeatNet{
     Eigen::Matrix4d B = Eigen::Matrix4d::Zero();
     for(size_t i=0; i < points_l.size(); i++){
       Eigen::Matrix4d A = Eigen::Matrix4d::Zero();
-      Eigen::Vector3d r12_rowi(r12[0][i],r12[1][i],r12[2][i]);
-      Eigen::Vector3d r21_coli(r21[0][i],r21[1][i],r21[2][i]);
-
-      A.block<1,3>(0,1) = r12_rowi;
-      A.block<3,1>(1,0) = r21_coli;
+      A.block<1,3>(0,1) = r12[i];
+      A.block<3,1>(1,0) = r21[i];
       A.block<3,3>(1,1) = r22[i];
 //      std::cout<<"A\n"<<A<<std::endl;
       B = B + A.transpose() * A;
+//      std::cout<<"B\n"<<B<<std::endl;
     }
 //    std::cout<<"B\n"<<B<<std::endl;
     Eigen::JacobiSVD<Eigen::MatrixXd> svd(B, Eigen::ComputeThinU | Eigen::ComputeThinV);
@@ -293,79 +293,37 @@ namespace FeatNet{
     std::vector<int> ransac_vec;
     std::vector<Eigen::Vector3f> ransac_l_points,ransac_r_points;
 
-/*
- *
- * data
-    5.5900    6.3590   12.2966
-    2.1838   -4.0179   -6.9858
-    0.8632    1.0971    3.4053
-
-    3.8301    3.9086    7.6601
-    2.1458   -7.5521  -13.0683
-    0.6632    2.6165    3.6896
-
-x_centroid    8.0819
-   -2.9400
-    1.7885
-
-y_centroid    5.1329
-   -6.1582
-    2.3231
-
-
-R12    1.1890    3.1802   -0.7346
-    0.4985   -0.3159    0.9848
-   -1.6876   -2.8643   -0.2502
-
-
-R21   -1.1890   -0.4985    1.6876
-   -3.1802    0.3159    2.8643
-    0.7346   -0.9848    0.2502
-
-R22_1   -3.7947   -2.9471    6.7419
-   13.4277   -2.4718  -10.9559
-   -2.5853   -0.3980    2.9833
-
-R22
-(:,:,1) =
-
-         0    2.5853   13.4277
-   -2.5853         0    3.7947
-  -13.4277   -3.7947         0
-
-
-(:,:,2) =
-
-         0    0.3980   -2.4718
-   -0.3980         0    2.9471
-    2.4718   -2.9471         0
-
-
-(:,:,3) =
-
-         0   -2.9833  -10.9559
-    2.9833         0   -6.7419
-   10.9559    6.7419         0
-
-estimate Rigid transform
- B
- 24.5002    7.0841   -6.5051  -63.6703
-    7.0841  326.6966  125.9907  -31.0569
-   -6.5051  125.9907  102.6985   64.4846
-  -63.6703  -31.0569   64.4846  376.5548
-T
-    0.8591   -0.4151   -0.2994    1.8113
-    0.3699    0.9079   -0.1973    1.2106
-    0.3537    0.0588    0.9335   -1.8335
-         0         0         0    1.0000
- */
-//    ransac_l_points.push_back(Eigen::Vector3f(5.5900,    6.3590,   12.2966));
-//    ransac_l_points.push_back(Eigen::Vector3f(2.1838,   -4.0179,   -6.9858));
-//    ransac_l_points.push_back(Eigen::Vector3f(0.8632,    1.0971,    3.4053));
+//    {
+//      Eigen::Matrix3d rotation;
+//      Eigen::Vector3d position;
 //
-//    ransac_r_points.push_back(Eigen::Vector3f(3.8301,    3.9086,    7.6601));
-//    ransac_r_points.push_back(Eigen::Vector3f(2.1458,   -7.5521,  -13.0683));
-//    ransac_r_points.push_back(Eigen::Vector3f(0.6632,    2.6165,    3.6896));
+//      ransac_vec.push_back(15-1);
+//      ransac_vec.push_back(102-1);
+//      ransac_vec.push_back(37-1);
+//
+//      for(size_t i=0; i<ransac_vec.size(); i++){
+//        ransac_l_points.push_back(left_points[ransac_vec[i]]);
+//        ransac_r_points.push_back(right_points[ransac_vec[i]]);
+//      }
+//
+//      for(size_t i=0; i<ransac_vec.size(); i++){
+//        std::cout<<"ind="<<ransac_vec[i]<<" left"<<ransac_l_points[i].transpose()<<std::endl;
+//        std::cout<<"ind="<<ransac_vec[i]<<" right"<<ransac_r_points[i].transpose()<<std::endl;
+//      }
+//
+//      estimateRt(ransac_l_points, ransac_r_points, rotation, position);
+//      std::vector<bool> inliers;
+//      euc3Ddist(left_points,right_points,rotation,position,inliers,1);
+//      int inliers_number =0;
+//      for(size_t i=0; i<inliers.size(); i++){
+//        if(inliers[i])inliers_number++;
+//      }
+//      std::cout<<"inliers_number="<<inliers_number<<std::endl;
+//      std::cout<<"rotation\n"<<rotation<<std::endl;
+//      std::cout<<"position="<<position.transpose()<<std::endl;
+//      exit(0);
+//    }
+
 
     int iter =0;
     Eigen::Matrix3d best_rotation;
@@ -373,12 +331,20 @@ T
 
     int max_inliers = 0;
     std::vector<bool> best_inliers;
-    while(iter < 20){
+    int N =1;
+    double p = 0.99;
+    while(iter < N){
       ransac_l_points.clear();
       ransac_r_points.clear();
 
       getRandomSeq(ransac_number, left_points.size(), ransac_vec);
 //      std::cout<<"ransac_vec size="<<ransac_vec.size()<<std::endl;
+//      for(size_t i=0; i<ransac_vec.size(); i++){
+//        std::cout<<"ind="<<ransac_vec[i]<<" left"<<left_points[ransac_vec[i]].transpose()<<std::endl;
+//        std::cout<<"ind="<<ransac_vec[i]<<" right"<<right_points[ransac_vec[i]].transpose()<<std::endl;
+//      }
+//      std::cout<<std::endl;
+
       Eigen::Matrix3d rotation;
       Eigen::Vector3d position;
 
@@ -399,11 +365,38 @@ T
         best_inliers = inliers;
         best_rotation = rotation;
         best_position = position;
+
+        double fracinliers = inliers_number * 1.0 / left_points.size();
+        double NoOutliers = 1 - std::pow(fracinliers,ransac_number);
+        NoOutliers = std::max(2.22e-16, NoOutliers);
+        NoOutliers = std::min(1-2.22e-16, NoOutliers);
+        N = std::log(1-p)/std::log(NoOutliers);
+        N = std::max(N,10);
+
       }
       iter++;
     }
 
+    std::cout<<"\nmax_inliers="<<max_inliers<<" N="<<N<<std::endl;
+    std::cout<<"best_rotation="<<best_rotation<<std::endl;
+    std::cout<<"best_position="<<best_position.transpose()<<std::endl;
+
+    ransac_l_points.clear();
+    ransac_r_points.clear();
+    for(size_t i=0; i < best_inliers.size();i++){
+        if(best_inliers[i]){
+          std::cout<<i+1<<" ";
+          ransac_l_points.push_back(left_points[i]);
+          ransac_r_points.push_back(right_points[i]);
+        }
+    }
+    std::cout<<std::endl;
+    estimateRt(ransac_l_points, ransac_r_points, best_rotation, best_position);
+
+    euc3Ddist(left_points,right_points,best_rotation,best_position,best_inliers,1);
+
     std::cout<<"max_inliers="<<max_inliers
+             <<"iter size="<<iter
              <<"\nbest_rotation\n"<<best_rotation
              <<"\nbest_position\n"<<best_position.transpose()<<std::endl;
   }
