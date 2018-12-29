@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-workspace(name = "com_github_googlecartographer_cartographer")
+workspace(name = "Feat_net")
 
 git_repository(
   name = "io_bazel_rules_ros",
@@ -31,29 +31,6 @@ local_repository(
 load("@gs//:gs.bzl", "gs_deps")
 gs_deps()
 
-load("//:bazel/repositories.bzl", "cartographer_repositories")
-
-cartographer_repositories()
-
-load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
-
-grpc_deps()
-
-load("@com_github_jupp0r_prometheus_cpp//:repositories.bzl", "load_prometheus_client_model", "load_civetweb")
-
-load_prometheus_client_model()
-
-load_civetweb()
-
-local_repository(
-  name = "cartographer",
-  path = "internal_deps/gaussian_mapping_v5",
-)
-
-local_repository(
-  name = "public_interface",
-  path = "internal_deps/public_interface",
-)
 
 local_repository(
   name = "link_stamp",
@@ -67,27 +44,6 @@ git_repository(
 )
 
 new_http_archive(
-    name = "pcl",
-    url = "http://z.gs-robot.com/pcl/pcl-1.7.2.tar.gz",
-    sha256 = "479f84f2c658a6319b78271111251b4c2d6cf07643421b66bbc351d9bed0ae93",
-    strip_prefix = "pcl-pcl-1.7.2",
-    build_file = "build_file/pcl.BUILD",
-)
-
-new_http_archive(
-    name = "pcl_conversions",
-    url = "https://github.com/ros-perception/pcl_conversions/archive/0.2.1.tar.gz",
-    sha256 = "79c107f2513fe0aa472b8eefc0cd652f0aaacaba482945acbf23c72d7d3bf5c8",
-    strip_prefix = "pcl_conversions-0.2.1",
-    build_file = "build_file/pcl_conversions.BUILD",
-)
-
-local_repository(
-    name = "pcl_msgs",
-    path = "internal_deps/pcl_msgs",
-)
-
-new_http_archive(
     name = "com_github_eigen_eigen",
     sha256 = "dd254beb0bafc695d0f62ae1a222ff85b52dbaa3a16f76e781dce22d0d20a4a6",
     strip_prefix = "eigen-eigen-5a0156e40feb",
@@ -96,8 +52,8 @@ new_http_archive(
 )
 
 git_repository(
-    name = "flann",
-    remote = "http://git.gs-robot.com/common/flann.git",
-    init_submodules = True,
-    commit = "c7bd423700492ebeee94e2f4d3c1e74e38c0e7dc",
+    name = "com_github_google_glog",
+    remote = "https://github.com/google/glog.git",
+    commit = "fc87161c962f11633a1bc5f278e038b05e8c8ed5",
 )
+

@@ -16,21 +16,22 @@ project(3dfeat_net_ros)
 set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_CXX_FLAGS "-std=c++11")
 
-#set(PACKAGE_DEPENDENCIES
-#  roscpp
-#)
-
-
-#find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
+set(PACKAGE_DEPENDENCIES
+  roscpp
+  std_msgs
+)
+set(catkin_DIR ${PROJECT_SOURCE_DIR}/cmake)
+find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
 
 find_package(Eigen3  REQUIRED)
 find_package(gflags  REQUIRED)
-find_package(Boost REQUIRED COMPONENTS iostreams filesystem exception)
-
+find_package(Boost REQUIRED COMPONENTS filesystem)
+message(${Boost_LIBRARIES})
 include_directories(
         ${Boost_INCLUDE_DIRS}
 )
-include_directories(${PROJECT_SOURCE_DIR}/include)
-add_executable(3dfeat_tracking src/readFile_main.cc
-                                src/FeatNetFrame.cc)
-target_link_libraries(3dfeat_tracking ${Boost_LIBRARIES})
+include_directories(${PROJECT_SOURCE_DIR}/include
+        ${PROJECT_SOURCE_DIR}/include/visualization)
+add_executable(3dfeat_tracking src/read_file_main.cc
+        src/feat_net_frame.cc)
+target_link_libraries(3dfeat_tracking ${Boost_LIBRARIES} ${catkin_LIBRARIES})
