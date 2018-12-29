@@ -7,6 +7,7 @@ namespace FeatNet{
 
   FeatNetFrame::FeatNetFrame(){
     ransac_matcher_ = std::make_shared<RansacMatch>();
+    visual_ = std::make_shared<Visualize>();
   }
 
   bool FeatNetFrame::LoadDataFromFile(std::string file_path){
@@ -109,7 +110,6 @@ namespace FeatNet{
 
 
   void FeatNetFrame::feature_tracking(){
-
     Eigen::Matrix4d pose = Eigen::Matrix4d::Identity();
     for(size_t i=0; i< features_frames_.size(); i++){
       if(i==0){
@@ -137,11 +137,13 @@ namespace FeatNet{
       Eigen::Matrix4d delta;
       ransac_matcher_->ransac(pre_frame_ptr_->features, selected_features,1,delta);
       pose = pose * delta;
+      cur_rotation_ = pose.block<3,3>(0,0);
+      cur_position_ = pose.block<3,1>(0,3);
       std::cout<<"current pose\n"<<pose<<std::endl;
       pre_frame_ptr_ =cur_frame_ptr_;
-      if(i==5){
-        exit(0);
-      }
+
+      publish();
+      usleep(1000);
     }
   };
 
@@ -180,5 +182,15 @@ namespace FeatNet{
       error += (desc_l(i,0) - desc_r(i,0)) * (desc_l(i,0) - desc_r(i,0));
     }
     return std::sqrt(error);
+  }
+
+  void FeatNetFrame::publish(){
+    std::vector<Eigen::Vector3f> points_in_world;
+    for(size_t i=0; i< cur_frame_ptr_->points.size(); i++){
+      points_in_world.push_back(cur_rotation_.cast<float>()* cur_frame_ptr_->points[i] + cur_position_.cast<float>());
+    }
+    visual_->addFramePose(cur_rotation_,cur_position_,"world");
+    visual_->addFrameCloud(points_in_world, "world");
+    visual_->publish();
   }
 }

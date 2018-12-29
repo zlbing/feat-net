@@ -11,6 +11,7 @@
 #include <iostream>
 #include <Eigen/Core>
 #include "ransac_match.h"
+#include "visualization/visualize.h"
 
 namespace FeatNet{
 
@@ -42,6 +43,8 @@ public:
              std::vector<float>& error12);
   float makeDist(const Eigen::Matrix<float, FEATURE_DIM, 1>& desc_l,
                  const Eigen::Matrix<float, FEATURE_DIM, 1>& desc_r);
+
+  void publish();
 private:
 
   Eigen::Matrix3d cur_rotation_;
@@ -52,6 +55,7 @@ private:
   std::vector<Frame> features_frames_;
 
   std::shared_ptr<RansacMatch> ransac_matcher_;
+  std::shared_ptr<Visualize> visual_;
 };
 }
 
