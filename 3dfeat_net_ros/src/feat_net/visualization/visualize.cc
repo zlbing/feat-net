@@ -7,6 +7,8 @@ namespace FeatNet {
   Visualize::Visualize() {
     ros::NodeHandle nh("~");
     pub_cloud_ = nh.advertise<sensor_msgs::PointCloud>("frame_cloud",10);
+    pub_loop_cloud_ = nh.advertise<sensor_msgs::PointCloud>("loop_frame_cloud",10);
+
     pub_pose_path_ = nh.advertise<nav_msgs::Path>("frame_pose_path",10);
     pub_loop_pose_path_ = nh.advertise<nav_msgs::Path>("loop_frame_pose_path",10);
 

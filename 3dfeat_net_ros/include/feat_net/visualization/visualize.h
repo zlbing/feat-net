@@ -40,13 +40,13 @@ private:
 
   nav_msgs::Path loop_pose_path_;
 
-  sensor_msgs::PointCloud frame_pointcloud_;
+  sensor_msgs::PointCloud frame_pointcloud_, loop_frame_pointcloud_;
 
   geometry_msgs::PoseArray looped_frame_pose_,frame_pose_;
 
   ros::Publisher pub_pose_path_,pub_loop_pose_path_;
 
-  ros::Publisher pub_cloud_;
+  ros::Publisher pub_cloud_, pub_loop_cloud_;
 
   ros::Publisher pub_pose_,pub_loop_pose_;
 };

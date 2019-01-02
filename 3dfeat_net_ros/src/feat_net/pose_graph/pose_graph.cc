@@ -153,7 +153,7 @@ namespace FeatNet{
                              trajectory_[index_j].position.data(),
                              trajectory_[index_j].rotation.coeffs().data());
 
-    for(int i=index_i; i< index_i+1; i++){
+    for(int i=index_i; i<= index_i+5; i++){
       problem.SetParameterBlockConstant(trajectory_[i].position.data());
       problem.SetParameterBlockConstant(trajectory_[i].rotation.coeffs().data());
     }
@@ -207,7 +207,7 @@ namespace FeatNet{
       problem.AddParameterBlock(euler_array[i], 1, angle_local_parameterization);
       problem.AddParameterBlock(t_array[i], 3);
 
-      if (i == index_i)
+      if (i <= index_i+5)
       {
         problem.SetParameterBlockConstant(euler_array[i]);
         problem.SetParameterBlockConstant(t_array[i]);

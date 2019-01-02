@@ -52,7 +52,7 @@ namespace FeatNet{
     {
       //get frame pose from file
       std::ifstream pose_data_file;
-      Eigen::Matrix3d rotation;
+      Eigen::Quaterniond rotation;
       Eigen::Vector3d position;
       pose_data_file.open(transform_file_path.c_str(), std::ios::in);
       if(pose_data_file.is_open()){
@@ -62,10 +62,10 @@ namespace FeatNet{
           std::vector<std::string> str_vec;
           boost::split(str_vec,str,boost::is_any_of(","));
 
-          rotation = Eigen::Quaterniond(boost::lexical_cast<double>(str_vec[0]),
+          rotation = Eigen::Quaterniond(boost::lexical_cast<double>(str_vec[3]),
+                                        boost::lexical_cast<double>(str_vec[0]),
                                         boost::lexical_cast<double>(str_vec[1]),
-                                        boost::lexical_cast<double>(str_vec[2]),
-                                        boost::lexical_cast<double>(str_vec[3])).toRotationMatrix();
+                                        boost::lexical_cast<double>(str_vec[2]));
           position = Eigen::Vector3d(boost::lexical_cast<double>(str_vec[4]),
                                      boost::lexical_cast<double>(str_vec[5]),
                                      boost::lexical_cast<double>(str_vec[6]));
@@ -109,7 +109,6 @@ namespace FeatNet{
     }
   };
 
-
   void FeatNetFrame::feature_tracking(){
     Eigen::Matrix4d pose = Eigen::Matrix4d::Identity();
     int looped=0;
@@ -132,7 +131,6 @@ namespace FeatNet{
         continue;
       }
       printf("\n\n\n%03d.bin %03d.bin",(int)i-1,(int)i);
-
       cur_frame_ptr_ = &features_frames_[i];
       std::vector<int> match12;
       std::vector<float> error12;
@@ -155,12 +153,12 @@ namespace FeatNet{
       std::cout<<"current pose\n"<<pose<<std::endl;
       pre_frame_ptr_ = cur_frame_ptr_;
 
-      cur_rotation_ = cur_frame_ptr_->rotation;
-      cur_position_ = cur_frame_ptr_->position;
+//      cur_rotation_ = cur_frame_ptr_->rotation;
+//      cur_position_ = cur_frame_ptr_->position;
 
       Pose pose_node;
-      pose_node.position = cur_frame_ptr_->position;//cur_position_;
-      pose_node.rotation = cur_frame_ptr_->rotation;//cur_rotation_;
+      pose_node.position = cur_position_;
+      pose_node.rotation = cur_rotation_;
       pose_node.features = cur_frame_ptr_->features;
       pose_node.descriptors = cur_frame_ptr_->descriptors;
       pose_node.id = i;
@@ -170,8 +168,8 @@ namespace FeatNet{
       if(looped < max_looped && pose_graph_ptr_->detectLoop(0,pose_graph_ptr_->getSizeOfTrajectory() -1, loop_delta)){
         GS_WARN("loop detection suceessful index_i=%d, index_j=%d",0,pose_graph_ptr_->getSizeOfTrajectory()-1);
         GS_INFO("loop detal position=%lf %lf %lf",loop_delta(0,3),loop_delta(1,3),loop_delta(2,3));
-        //pose_graph_ptr_->optimize3DPoseGraph(0, pose_graph_ptr_->getSizeOfTrajectory() -1, loop_delta);
-        pose_graph_ptr_->optimize4DoFPoseGraph(0, pose_graph_ptr_->getSizeOfTrajectory() -1, loop_delta);
+        pose_graph_ptr_->optimize3DPoseGraph(0, pose_graph_ptr_->getSizeOfTrajectory()-1, loop_delta);
+        //pose_graph_ptr_->optimize4DoFPoseGraph(0, pose_graph_ptr_->getSizeOfTrajectory() -1, loop_delta);
 
         visual_ptr_->addLoopPath(pose_graph_ptr_->getTracjectory(),"world");
         looped++;
