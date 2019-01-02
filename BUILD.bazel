@@ -39,6 +39,7 @@ cc_binary(
     linkstatic = True,
     stamp = 1,
     deps = [
+        "@ceres",
         "@com_github_eigen_eigen//:eigen",
         "@gs//:gs",
         "@io_bazel_rules_ros//ros:diagnostic_msgs",

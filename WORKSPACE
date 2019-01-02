@@ -43,6 +43,20 @@ git_repository(
     commit = "67d6253f11be70a2bcce57c0b7934908e52d5a04",
 )
 
+git_repository(
+    name = "com_github_gflags_gflags",
+    remote = "https://github.com/gflags/gflags.git",
+    tag = 'v2.2.1',
+)
+
+new_http_archive(
+    name = "ceres",
+    url = "http://ceres-solver.org/ceres-solver-1.13.0.tar.gz",
+    sha256 = "1df490a197634d3aab0a65687decd362912869c85a61090ff66f073c967a7dcd",
+    strip_prefix = "ceres-solver-1.13.0",
+    build_file = "build_file/ceres.bazel.BUILD",
+)
+
 new_http_archive(
     name = "com_github_eigen_eigen",
     sha256 = "dd254beb0bafc695d0f62ae1a222ff85b52dbaa3a16f76e781dce22d0d20a4a6",

@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="use_sim_time" value="true" />
+  <node pkg="3dfeat_net_ros" type="3dfeat_tracking" name="feat_tracking" output="screen">
+    <param name="file_path" value="/home/data/featNetData_4" />
+
+  </node>
+</launch>

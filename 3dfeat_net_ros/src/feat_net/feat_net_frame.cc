@@ -2,12 +2,13 @@
 // Created by zzz on 18-12-26.
 //
 
-#include "feat_net_frame.h"
+#include "feat_net/feat_net_frame.h"
 namespace FeatNet{
 
   FeatNetFrame::FeatNetFrame(){
-    ransac_matcher_ = std::make_shared<RansacMatch>();
-    visual_ = std::make_shared<Visualize>();
+    ransac_matcher_ptr_ = std::make_shared<RansacMatch>();
+    visual_ptr_ = std::make_shared<Visualize>();
+    pose_graph_ptr_ = std::make_shared<PoseGraph>();
   }
 
   bool FeatNetFrame::LoadDataFromFile(std::string file_path){
@@ -111,14 +112,27 @@ namespace FeatNet{
 
   void FeatNetFrame::feature_tracking(){
     Eigen::Matrix4d pose = Eigen::Matrix4d::Identity();
+    int looped=0;
+    int max_looped =1;
     for(size_t i=0; i< features_frames_.size(); i++){
       if(i==0){
         pre_frame_ptr_ = &features_frames_[i];
         cur_frame_ptr_ = &features_frames_[i];
         cur_rotation_ = cur_frame_ptr_->rotation;
         cur_position_ = cur_frame_ptr_->position;
+
+        Pose pose;
+        pose.position = cur_position_;
+        pose.rotation = cur_rotation_;
+        pose.features = cur_frame_ptr_->features;
+        pose.descriptors = cur_frame_ptr_->descriptors;
+        pose.id = i;
+        pose_graph_ptr_->addPose(pose);
+
         continue;
       }
+      printf("\n\n\n%03d.bin %03d.bin",(int)i-1,(int)i);
+
       cur_frame_ptr_ = &features_frames_[i];
       std::vector<int> match12;
       std::vector<float> error12;
@@ -133,17 +147,41 @@ namespace FeatNet{
         selected_features.push_back(cur_frame_ptr_->features[match12[i]]);
 //        std::cout<<"i="<<i<<" j="<<match12[i]<<std::endl;
       }
-      printf("%03d.bin %03d.bin",(int)i-1,(int)i);
       Eigen::Matrix4d delta;
-      ransac_matcher_->ransac(pre_frame_ptr_->features, selected_features,1,delta);
+      ransac_matcher_ptr_->ransac(pre_frame_ptr_->features, selected_features,1,delta);
       pose = pose * delta;
       cur_rotation_ = pose.block<3,3>(0,0);
       cur_position_ = pose.block<3,1>(0,3);
       std::cout<<"current pose\n"<<pose<<std::endl;
-      pre_frame_ptr_ =cur_frame_ptr_;
+      pre_frame_ptr_ = cur_frame_ptr_;
 
+      cur_rotation_ = cur_frame_ptr_->rotation;
+      cur_position_ = cur_frame_ptr_->position;
+
+      Pose pose_node;
+      pose_node.position = cur_frame_ptr_->position;//cur_position_;
+      pose_node.rotation = cur_frame_ptr_->rotation;//cur_rotation_;
+      pose_node.features = cur_frame_ptr_->features;
+      pose_node.descriptors = cur_frame_ptr_->descriptors;
+      pose_node.id = i;
+      //detect loop closure
+      pose_graph_ptr_->addPose(pose_node);
+      Eigen::Matrix4d loop_delta;
+      if(looped < max_looped && pose_graph_ptr_->detectLoop(0,pose_graph_ptr_->getSizeOfTrajectory() -1, loop_delta)){
+        GS_WARN("loop detection suceessful index_i=%d, index_j=%d",0,pose_graph_ptr_->getSizeOfTrajectory()-1);
+        GS_INFO("loop detal position=%lf %lf %lf",loop_delta(0,3),loop_delta(1,3),loop_delta(2,3));
+        //pose_graph_ptr_->optimize3DPoseGraph(0, pose_graph_ptr_->getSizeOfTrajectory() -1, loop_delta);
+        pose_graph_ptr_->optimize4DoFPoseGraph(0, pose_graph_ptr_->getSizeOfTrajectory() -1, loop_delta);
+
+        visual_ptr_->addLoopPath(pose_graph_ptr_->getTracjectory(),"world");
+        looped++;
+      }
       publish();
-      usleep(1000);
+
+      if(looped >= max_looped){
+        exit(0);
+      }
+//      usleep(1000);
     }
   };
 
@@ -189,8 +227,8 @@ namespace FeatNet{
     for(size_t i=0; i< cur_frame_ptr_->points.size(); i++){
       points_in_world.push_back(cur_rotation_.cast<float>()* cur_frame_ptr_->points[i] + cur_position_.cast<float>());
     }
-    visual_->addFramePose(cur_rotation_,cur_position_,"world");
-    visual_->addFrameCloud(points_in_world, "world");
-    visual_->publish();
+    visual_ptr_->addFramePose(cur_rotation_,cur_position_,"world");
+    visual_ptr_->addFrameCloud(points_in_world, "world");
+    visual_ptr_->publish();
   }
 }

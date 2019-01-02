@@ -2,7 +2,7 @@
 // Created by zzz on 18-12-29.
 //
 
-#include "ransac_match.h"
+#include "feat_net/ransac_match.h"
 
 namespace FeatNet{
 
@@ -103,13 +103,16 @@ namespace FeatNet{
   void RansacMatch::getRandomSeq(int len, int max_value, std::vector<int>& seq){
     std::vector<bool> idx(max_value, false);
     seq.resize(len);
-    for(size_t i=0; i<len; i++){
+    for(int i=0; i < len; i++){
       int value = -1;
       while(true){
         value = toolUniform_(toolGenerator_) % max_value;
-        if(idx[value])continue;
-        idx[value] = true;
-        break;
+        if(idx[value]){
+          continue;
+        }else{
+          idx[value] = true;
+          break;
+        }
       }
       if(value < 0){
         std::cerr<<"RansacMatch::getRandomSeq random error"<<std::endl;
@@ -118,7 +121,7 @@ namespace FeatNet{
     }
   }
 
-  bool RansacMatch::ransac(const std::vector<Eigen::Vector3f>& left_points,
+  int RansacMatch::ransac(const std::vector<Eigen::Vector3f>& left_points,
                             const std::vector<Eigen::Vector3f>& right_points,
                             float error,
                             Eigen::Matrix4d& delta){
@@ -168,7 +171,7 @@ namespace FeatNet{
         NoOutliers = std::min(1-EPS, NoOutliers);
         N = std::log(1-p)/std::log(NoOutliers);
         N = std::max(N,10);
-
+        N = std::min(N,10000);
       }
       iter++;
     }
@@ -178,7 +181,7 @@ namespace FeatNet{
     std::cout<<"best_position="<<best_position.transpose()<<std::endl;
 
     if(max_inliers < ransac_number_){
-      return false;
+      return max_inliers;
     }else{
       ransac_l_points.clear();
       ransac_r_points.clear();
@@ -203,7 +206,7 @@ namespace FeatNet{
     delta = Eigen::Matrix4d::Identity();
     delta.block<3,3>(0,0) = best_rotation;
     delta.block<3,1>(0,3) = best_position;
-    return true;
+    return max_inliers;
   }
 
   void RansacMatch::euc3Ddist(const std::vector<Eigen::Vector3f>& left_points,

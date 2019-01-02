@@ -33,5 +33,5 @@ include_directories(
 include_directories(${PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/include/visualization)
 add_executable(3dfeat_tracking src/read_file_main.cc
-        src/feat_net_frame.cc)
+        src/feat_net/feat_net_frame.cc)
 target_link_libraries(3dfeat_tracking ${Boost_LIBRARIES} ${catkin_LIBRARIES})

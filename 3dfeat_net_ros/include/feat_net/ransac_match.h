@@ -7,14 +7,14 @@
 #include <Eigen/Dense>
 #include <iostream>
 namespace FeatNet{
-#define EPS 1e-9
+#define EPS 2.22e-16
   class RansacMatch {
   public:
     RansacMatch(int ransac_number=3);
     explicit RansacMatch(RansacMatch const&) = delete;
     void operator=(RansacMatch const&) = delete;
 
-    bool ransac(const std::vector<Eigen::Vector3f>& left_points,
+    int ransac(const std::vector<Eigen::Vector3f>& left_points,
                 const std::vector<Eigen::Vector3f>& right_points,
                 float error,
                 Eigen::Matrix4d& delta);
