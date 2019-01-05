@@ -24,6 +24,7 @@ namespace FeatNet{
     Eigen::Vector3d position;
     std::vector<Eigen::Vector3f> features;
     std::vector< Eigen::Matrix<float, FEATURE_DIM, 1> > descriptors;
+    std::vector<Eigen::Vector3f> points;
     int id;
   };
 

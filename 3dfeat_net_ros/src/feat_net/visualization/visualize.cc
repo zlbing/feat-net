@@ -55,6 +55,7 @@ namespace FeatNet {
   void Visualize::addLoopPath(const std::vector<Pose>& trajectory_, std::string frame_id){
     loop_pose_path_.poses.clear();
     looped_frame_pose_.poses.clear();
+    loop_frame_pointcloud_.points.clear();
     for(size_t i=0;i<trajectory_.size(); i++){
       geometry_msgs::PoseStamped pose_stamped;
       pose_stamped.header.frame_id=frame_id;
@@ -70,6 +71,19 @@ namespace FeatNet {
       loop_pose_path_.header = pose_stamped.header;
       looped_frame_pose_.poses.push_back(pose_stamped.pose);
       looped_frame_pose_.header = pose_stamped.header;
+
+      for(size_t j=0; j< trajectory_[i].points.size(); j++){
+        Eigen::Vector3f points_in_world = trajectory_[i].position.cast<float>()
+                                          + trajectory_[i].rotation.cast<float>()
+                                            * trajectory_[i].points[j];
+        geometry_msgs::Point32 p;
+        p.x = points_in_world.x();
+        p.y = points_in_world.y();
+        p.z = points_in_world.z();
+
+        loop_frame_pointcloud_.points.push_back(p);
+      }
+      loop_frame_pointcloud_.header = pose_stamped.header;
     }
   }
   void Visualize::publish(){
@@ -79,5 +93,6 @@ namespace FeatNet {
 
     pub_loop_pose_path_.publish(loop_pose_path_);
     pub_loop_pose_.publish(looped_frame_pose_);
+    pub_loop_cloud_.publish(loop_frame_pointcloud_);
   }
 }

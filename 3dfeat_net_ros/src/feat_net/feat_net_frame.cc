@@ -112,7 +112,7 @@ namespace FeatNet{
   void FeatNetFrame::feature_tracking(){
     Eigen::Matrix4d pose = Eigen::Matrix4d::Identity();
     int looped=0;
-    int max_looped =1;
+    int max_looped = 3;
     for(size_t i=0; i< features_frames_.size(); i++){
       if(i==0){
         pre_frame_ptr_ = &features_frames_[i];
@@ -120,17 +120,18 @@ namespace FeatNet{
         cur_rotation_ = cur_frame_ptr_->rotation;
         cur_position_ = cur_frame_ptr_->position;
 
-        Pose pose;
-        pose.position = cur_position_;
-        pose.rotation = cur_rotation_;
-        pose.features = cur_frame_ptr_->features;
-        pose.descriptors = cur_frame_ptr_->descriptors;
-        pose.id = i;
-        pose_graph_ptr_->addPose(pose);
+        Pose pose_node;
+        pose_node.position = cur_position_;
+        pose_node.rotation = cur_rotation_;
+        pose_node.features = cur_frame_ptr_->features;
+        pose_node.descriptors = cur_frame_ptr_->descriptors;
+        pose_node.id = pose_graph_ptr_->getSizeOfTrajectory();
+        pose_node.points = cur_frame_ptr_->points;
+        pose_graph_ptr_->addPose(pose_node);
 
         continue;
       }
-      printf("\n\n\n%03d.bin %03d.bin",(int)i-1,(int)i);
+      printf("\n\n\n%04d.bin %04d.bin",(int)i-1,(int)i);
       cur_frame_ptr_ = &features_frames_[i];
       std::vector<int> match12;
       std::vector<float> error12;
@@ -141,8 +142,8 @@ namespace FeatNet{
             error12);
 
       std::vector<Eigen::Vector3f> selected_features;
-      for(size_t i=0; i < match12.size(); i++){
-        selected_features.push_back(cur_frame_ptr_->features[match12[i]]);
+      for(size_t j=0; j < match12.size(); j++){
+        selected_features.push_back(cur_frame_ptr_->features[match12[j]]);
 //        std::cout<<"i="<<i<<" j="<<match12[i]<<std::endl;
       }
       Eigen::Matrix4d delta;
@@ -155,22 +156,26 @@ namespace FeatNet{
 
 //      cur_rotation_ = cur_frame_ptr_->rotation;
 //      cur_position_ = cur_frame_ptr_->position;
-
       Pose pose_node;
       pose_node.position = cur_position_;
       pose_node.rotation = cur_rotation_;
       pose_node.features = cur_frame_ptr_->features;
       pose_node.descriptors = cur_frame_ptr_->descriptors;
-      pose_node.id = i;
+      pose_node.id = pose_graph_ptr_->getSizeOfTrajectory();
+      pose_node.points = cur_frame_ptr_->points;
+
       //detect loop closure
       pose_graph_ptr_->addPose(pose_node);
+
+      pose_graph_ptr_->addConstraint(i-1,i,delta);
+
       Eigen::Matrix4d loop_delta;
       if(looped < max_looped && pose_graph_ptr_->detectLoop(0,pose_graph_ptr_->getSizeOfTrajectory() -1, loop_delta)){
         GS_WARN("loop detection suceessful index_i=%d, index_j=%d",0,pose_graph_ptr_->getSizeOfTrajectory()-1);
         GS_INFO("loop detal position=%lf %lf %lf",loop_delta(0,3),loop_delta(1,3),loop_delta(2,3));
+        pose_graph_ptr_->addConstraint(0, pose_graph_ptr_->getSizeOfTrajectory()-1, loop_delta);
         pose_graph_ptr_->optimize3DPoseGraph(0, pose_graph_ptr_->getSizeOfTrajectory()-1, loop_delta);
-        //pose_graph_ptr_->optimize4DoFPoseGraph(0, pose_graph_ptr_->getSizeOfTrajectory() -1, loop_delta);
-
+//        pose_graph_ptr_->optimize4DoFPoseGraph(0, pose_graph_ptr_->getSizeOfTrajectory() -1, loop_delta);
         visual_ptr_->addLoopPath(pose_graph_ptr_->getTracjectory(),"world");
         looped++;
       }
@@ -181,6 +186,7 @@ namespace FeatNet{
       }
 //      usleep(1000);
     }
+    exit(0);
   };
 
   void FeatNetFrame::match(const std::vector< Eigen::Matrix<float, FEATURE_DIM, 1> >& desc_left_vec,

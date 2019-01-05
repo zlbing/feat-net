@@ -26,6 +26,8 @@ namespace FeatNet{
 
     void addPose(Pose& pose);
 
+    void addConstraint(int i, int j, Eigen::Matrix4d& delta);
+
     bool detectLoop(int index_i, int index_j, Eigen::Matrix4d& delta);
 
     bool detectFrameMatch(int index_i, int index_j, Eigen::Matrix4d& delta);
